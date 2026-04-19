@@ -20,16 +20,20 @@ function App() {
 
   useEffect(() => {
     const vv = window.visualViewport
-    if (!vv) return
     const update = () => {
-      document.documentElement.style.setProperty('--app-height', `${vv.height}px`)
+      const h = vv?.height ?? window.innerHeight
+      document.documentElement.style.setProperty('--app-height', `${h}px`)
     }
     update()
-    vv.addEventListener('resize', update)
-    vv.addEventListener('scroll', update)
+    vv?.addEventListener('resize', update)
+    vv?.addEventListener('scroll', update)
+    window.addEventListener('resize', update)
+    window.addEventListener('orientationchange', update)
     return () => {
-      vv.removeEventListener('resize', update)
-      vv.removeEventListener('scroll', update)
+      vv?.removeEventListener('resize', update)
+      vv?.removeEventListener('scroll', update)
+      window.removeEventListener('resize', update)
+      window.removeEventListener('orientationchange', update)
     }
   }, [])
 

@@ -75,6 +75,16 @@ export function Drill({ type, level, direction, onDone, onQuit }: Props) {
     inputRef.current?.focus()
   }, [state.index, isGuess])
 
+  // In read mode iOS closes the soft keyboard on blur and won't reopen it on
+  // its own. Tapping anywhere outside the input (prompt, translation, hint)
+  // should bring it back without forcing the user to hit the input itself.
+  const refocusIfRead = () => {
+    if (isGuess) return
+    if (state.revealed) return
+    const el = inputRef.current
+    if (el && document.activeElement !== el) el.focus()
+  }
+
   useEffect(() => {
     if (!done || state.finishedAt === null || doneRef.current) return
     doneRef.current = true
@@ -120,6 +130,7 @@ export function Drill({ type, level, direction, onDone, onQuit }: Props) {
     <div
       className="flex flex-col overflow-hidden px-6 pt-[max(1rem,env(safe-area-inset-top))] pb-[max(1rem,env(safe-area-inset-bottom))]"
       style={{ height: 'var(--app-height, 100dvh)' }}
+      onPointerDown={refocusIfRead}
     >
       <header className="mb-6 flex items-center gap-3">
         <span className="font-mono text-xs tabular-nums text-muted-foreground">
