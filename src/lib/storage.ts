@@ -12,7 +12,8 @@ export function loadSettings(): Settings {
     const raw = localStorage.getItem(KEY)
     if (!raw) return { type: 'hiragana', level: 1 }
     const parsed = JSON.parse(raw) as Partial<Settings>
-    const type: KanaType = parsed.type === 'katakana' ? 'katakana' : 'hiragana'
+    const type: KanaType =
+      parsed.type === 'katakana' || parsed.type === 'words' ? parsed.type : 'hiragana'
     const level: Level = parsed.level === 2 || parsed.level === 3 ? parsed.level : 1
     return { type, level }
   } catch {

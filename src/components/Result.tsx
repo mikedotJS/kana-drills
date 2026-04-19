@@ -48,20 +48,41 @@ export function Result({ result, onPlayAgain, onHome }: Props) {
           {missed.length > 0 ? `Missed (${missed.length})` : 'No mistakes'}
         </h2>
         {missed.length > 0 && (
-          <ul className="grid grid-cols-3 gap-2 sm:grid-cols-4">
-            {missed.map((e) => (
-              <li
-                key={e.kana}
-                className="flex flex-col items-center rounded-xl bg-muted/40 py-3"
-              >
-                <span className="text-3xl" lang="ja">
-                  {e.kana}
-                </span>
-                <span className="mt-1 font-mono text-xs text-muted-foreground">
-                  {e.romaji[0]}
-                </span>
-              </li>
-            ))}
+          <ul
+            className={
+              missed.some((e) => e.translation)
+                ? 'grid grid-cols-1 gap-2'
+                : 'grid grid-cols-3 gap-2 sm:grid-cols-4'
+            }
+          >
+            {missed.map((e) =>
+              e.translation ? (
+                <li
+                  key={e.kana}
+                  className="flex items-center justify-between gap-3 rounded-xl bg-muted/40 px-4 py-3"
+                >
+                  <span className="text-xl" lang="ja">
+                    {e.kana}
+                  </span>
+                  <span className="flex-1 font-mono text-xs text-muted-foreground">
+                    {e.romaji[0]}
+                  </span>
+                  <span className="text-sm text-foreground">{e.translation}</span>
+                </li>
+              ) : (
+                <li
+                  key={e.kana}
+                  className="flex flex-col items-center rounded-xl bg-muted/40 py-3"
+                >
+                  <span className="text-3xl" lang="ja">
+                    {e.kana}
+                  </span>
+                  <span className="mt-1 font-mono text-xs text-muted-foreground">
+                    {e.romaji[0]}
+                  </span>
+                </li>
+              )
+            )}
           </ul>
         )}
       </section>
