@@ -13,6 +13,10 @@ export type DrillState = {
   // Set when user submitted a wrong answer on the current prompt.
   // Mistake already recorded; user must retype correct answer to advance.
   retry: boolean
+  // Set when the current prompt has a translation and the user just answered
+  // correctly; the UI shows the translation and waits for the user to confirm
+  // before advancing.
+  revealed: boolean
   startedAt: number
   finishedAt: number | null
 }
@@ -22,42 +26,51 @@ type Action =
   | { type: 'SUBMIT' }
   | { type: 'RESET'; deck: KanaEntry[] }
 
+function advance(state: DrillState, creditCorrect: boolean): DrillState {
+  const newIndex = state.index + 1
+  const done = newIndex >= state.deck.length
+  return {
+    ...state,
+    input: '',
+    retry: false,
+    revealed: false,
+    index: newIndex,
+    correct: creditCorrect ? state.correct + 1 : state.correct,
+    finishedAt: done ? Date.now() : null,
+  }
+}
+
 function reducer(state: DrillState, action: Action): DrillState {
   switch (action.type) {
     case 'TYPE': {
       const current = state.deck[state.index]
       if (!current) return state
+      if (state.revealed) {
+        // Ignore typing while the translation is being shown.
+        return state
+      }
       const nextInput = action.value
-      // On every keystroke, if input matches: advance.
       if (isMatch(current, nextInput)) {
-        const newIndex = state.index + 1
-        const done = newIndex >= state.deck.length
-        return {
-          ...state,
-          input: '',
-          retry: false,
-          index: newIndex,
-          correct: state.retry ? state.correct : state.correct + 1,
-          finishedAt: done ? Date.now() : null,
+        // Words: pause on the translation before advancing.
+        if (current.translation) {
+          return { ...state, input: nextInput, revealed: true }
         }
+        return advance(state, !state.retry)
       }
       return { ...state, input: nextInput }
     }
     case 'SUBMIT': {
       const current = state.deck[state.index]
       if (!current) return state
-      // Correct submission — normally caught by TYPE, but handle Enter on edge cases.
+      // Confirm advance from the translation-reveal screen.
+      if (state.revealed) {
+        return advance(state, !state.retry)
+      }
       if (isMatch(current, state.input)) {
-        const newIndex = state.index + 1
-        const done = newIndex >= state.deck.length
-        return {
-          ...state,
-          input: '',
-          retry: false,
-          index: newIndex,
-          correct: state.retry ? state.correct : state.correct + 1,
-          finishedAt: done ? Date.now() : null,
+        if (current.translation) {
+          return { ...state, revealed: true }
         }
+        return advance(state, !state.retry)
       }
       // Wrong submission — record mistake once, enter retry mode.
       if (state.retry) return state
@@ -81,6 +94,7 @@ function initial(deck: KanaEntry[]): DrillState {
     correct: 0,
     mistakes: [],
     retry: false,
+    revealed: false,
     startedAt: Date.now(),
     finishedAt: null,
   }

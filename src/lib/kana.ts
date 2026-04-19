@@ -1,5 +1,7 @@
-export type KanaEntry = { kana: string; romaji: string[] }
-export type KanaType = 'hiragana' | 'katakana'
+import { pickWordSet, WORD_LEVEL_LABEL } from './words'
+
+export type KanaEntry = { kana: string; romaji: string[]; translation?: string }
+export type KanaType = 'hiragana' | 'katakana' | 'words'
 export type Level = 1 | 2 | 3
 
 const HIRAGANA_BASE: KanaEntry[] = [
@@ -229,6 +231,10 @@ const KATAKANA_YOON: KanaEntry[] = [
 ]
 
 export function pickSet(type: KanaType, level: Level): KanaEntry[] {
+  if (type === 'words') {
+    // Imported lazily to avoid a circular import at the top of the file.
+    return pickWordSet(level)
+  }
   if (type === 'hiragana') {
     if (level === 1) return HIRAGANA_BASE
     if (level === 2) return [...HIRAGANA_BASE, ...HIRAGANA_DAKUTEN]
@@ -243,4 +249,9 @@ export const LEVEL_LABEL: Record<Level, string> = {
   1: 'Gojūon',
   2: '+ Dakuten',
   3: '+ Yōon',
+}
+
+export function levelLabel(type: KanaType, level: Level): string {
+  if (type === 'words') return WORD_LEVEL_LABEL[level]
+  return LEVEL_LABEL[level]
 }

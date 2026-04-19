@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import type { KanaType, Level } from '@/lib/kana'
-import { LEVEL_LABEL, pickSet } from '@/lib/kana'
+import { levelLabel, pickSet } from '@/lib/kana'
 import { loadSettings, saveSettings } from '@/lib/storage'
 import { Button } from '@/components/ui/button'
 
@@ -8,15 +8,21 @@ type Props = {
   onStart: (type: KanaType, level: Level) => void
 }
 
+const MODES: { type: KanaType; label: string; sample: string }[] = [
+  { type: 'hiragana', label: 'Hiragana', sample: 'あ い う' },
+  { type: 'katakana', label: 'Katakana', sample: 'ア イ ウ' },
+  { type: 'words', label: 'Words', sample: 'ねこ みず' },
+]
+
 export function Home({ onStart }: Props) {
   const [type, setType] = useState<KanaType>(() => loadSettings().type)
   const [level, setLevel] = useState<Level>(() => loadSettings().level)
 
   const setCount = pickSet(type, level).length
   const sampleKana = pickSet(type, level)
-    .slice(0, 12)
+    .slice(0, 10)
     .map((e) => e.kana)
-    .join(' ')
+    .join(type === 'words' ? '  ' : ' ')
 
   const start = () => {
     saveSettings({ type, level })
@@ -30,26 +36,25 @@ export function Home({ onStart }: Props) {
     >
       <header className="mb-10 text-center">
         <h1 className="font-heading text-3xl font-medium tracking-tight">Kana Drills</h1>
-        <p className="mt-1 text-sm text-muted-foreground">Type the romaji. 20 per round.</p>
+        <p className="mt-1 text-sm text-muted-foreground">
+          {type === 'words' ? 'Type the romaji. See the meaning.' : 'Type the romaji. 20 per round.'}
+        </p>
       </header>
 
       <section className="mb-8">
         <h2 className="mb-3 text-xs font-medium uppercase tracking-wider text-muted-foreground">
-          Kana
+          Mode
         </h2>
-        <div className="grid grid-cols-2 gap-3">
-          <TypeButton
-            active={type === 'hiragana'}
-            label="Hiragana"
-            sample="あ い う"
-            onClick={() => setType('hiragana')}
-          />
-          <TypeButton
-            active={type === 'katakana'}
-            label="Katakana"
-            sample="ア イ ウ"
-            onClick={() => setType('katakana')}
-          />
+        <div className="grid grid-cols-3 gap-3">
+          {MODES.map((m) => (
+            <TypeButton
+              key={m.type}
+              active={type === m.type}
+              label={m.label}
+              sample={m.sample}
+              onClick={() => setType(m.type)}
+            />
+          ))}
         </div>
       </section>
 
@@ -63,7 +68,7 @@ export function Home({ onStart }: Props) {
               key={n}
               active={level === n}
               level={n}
-              label={LEVEL_LABEL[n]}
+              label={levelLabel(type, n)}
               onClick={() => setLevel(n)}
             />
           ))}
@@ -72,9 +77,9 @@ export function Home({ onStart }: Props) {
 
       <section className="mb-8 rounded-xl bg-muted/40 p-4">
         <p className="mb-2 text-xs text-muted-foreground">
-          {setCount} kana in this set
+          {setCount} {type === 'words' ? 'words' : 'kana'} in this set
         </p>
-        <p className="text-2xl leading-relaxed" lang="ja">
+        <p className={`leading-relaxed ${type === 'words' ? 'text-lg' : 'text-2xl'}`} lang="ja">
           {sampleKana}…
         </p>
       </section>
@@ -107,10 +112,10 @@ function TypeButton({
       type="button"
       onClick={onClick}
       data-active={active}
-      className="flex flex-col items-start gap-1 rounded-xl border border-border bg-background px-4 py-3 text-left transition-colors data-[active=true]:border-primary data-[active=true]:bg-primary/10"
+      className="flex flex-col items-start gap-1 rounded-xl border border-border bg-background px-3 py-3 text-left transition-colors data-[active=true]:border-primary data-[active=true]:bg-primary/10"
     >
       <span className="text-sm font-medium">{label}</span>
-      <span className="text-xl text-muted-foreground" lang="ja">
+      <span className="text-base text-muted-foreground" lang="ja">
         {sample}
       </span>
     </button>

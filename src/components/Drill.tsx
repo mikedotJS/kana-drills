@@ -43,6 +43,10 @@ export function Drill({ type, level, onDone, onQuit }: Props) {
   }, [done, state.finishedAt, state.correct, state.mistakes, state.startedAt, total])
 
   const progress = done ? 100 : (state.index / total) * 100
+  const isWord = type === 'words'
+  const kanaSizeClass = isWord
+    ? 'text-[min(4rem,14dvh)] leading-[1.2] sm:text-[min(6rem,18dvh)]'
+    : 'text-[min(9rem,26dvh)] leading-[1.1] sm:text-[min(12rem,32dvh)]'
 
   return (
     <div
@@ -65,12 +69,25 @@ export function Drill({ type, level, onDone, onQuit }: Props) {
             <div
               key={state.index}
               data-retry={state.retry}
-              className="text-[min(9rem,26dvh)] leading-[1.1] font-medium transition-colors data-[retry=true]:text-destructive sm:text-[min(12rem,32dvh)]"
+              className={`${kanaSizeClass} font-medium transition-colors data-[retry=true]:text-destructive`}
               lang="ja"
             >
               {current.kana}
             </div>
-            {state.retry && (
+            {state.revealed && current.translation && (
+              <div className="mt-6 flex flex-col items-center gap-1 text-center">
+                <span className="font-mono text-lg text-foreground">
+                  {current.romaji[0]}
+                </span>
+                <span className="text-xl font-medium text-foreground">
+                  {current.translation}
+                </span>
+                <span className="mt-2 text-xs uppercase tracking-wider text-muted-foreground">
+                  Enter to continue
+                </span>
+              </div>
+            )}
+            {!state.revealed && state.retry && (
               <p className="mt-4 text-center text-sm text-muted-foreground">
                 Answer:{' '}
                 <span className="font-mono text-base text-foreground">
@@ -105,9 +122,11 @@ export function Drill({ type, level, onDone, onQuit }: Props) {
           spellCheck={false}
           autoComplete="off"
           autoFocus
+          readOnly={state.revealed}
           aria-label="Romaji input"
           data-retry={state.retry}
-          className="h-14 rounded-2xl text-center !text-2xl font-mono data-[retry=true]:border-destructive data-[retry=true]:ring-3 data-[retry=true]:ring-destructive/30"
+          data-revealed={state.revealed}
+          className="h-14 rounded-2xl text-center !text-2xl font-mono data-[retry=true]:border-destructive data-[retry=true]:ring-3 data-[retry=true]:ring-destructive/30 data-[revealed=true]:border-primary data-[revealed=true]:ring-3 data-[revealed=true]:ring-primary/30"
         />
         <div className="mt-4 flex items-center justify-between text-xs text-muted-foreground">
           <span>Enter to submit</span>
