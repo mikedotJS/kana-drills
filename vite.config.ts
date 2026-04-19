@@ -26,17 +26,17 @@ export default defineConfig({
         background_color: '#0a0a0a',
         display: 'standalone',
         orientation: 'portrait',
-        start_url: '/',
-        scope: '/',
+        start_url: '/kana-drills/',
+        scope: '/kana-drills/',
         icons: [
           {
-            src: '/pwa-icon.svg',
+            src: 'pwa-icon.svg',
             sizes: 'any',
             type: 'image/svg+xml',
             purpose: 'any',
           },
           {
-            src: '/maskable-icon.svg',
+            src: 'maskable-icon.svg',
             sizes: 'any',
             type: 'image/svg+xml',
             purpose: 'maskable',
