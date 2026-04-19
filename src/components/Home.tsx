@@ -19,7 +19,7 @@ export function Home({ onStart }: Props) {
   const [level, setLevel] = useState<Level>(() => loadSettings().level)
   const [direction, setDirection] = useState<Direction>(() => loadSettings().direction)
 
-  const effectiveDirection: Direction = type === 'words' ? 'read' : direction
+  const effectiveDirection: Direction = direction
   const setCount = pickSet(type, level).length
   const sampleKana = pickSet(type, level)
     .slice(0, 10)
@@ -40,7 +40,9 @@ export function Home({ onStart }: Props) {
         <h1 className="font-heading text-3xl font-medium tracking-tight">Kana Drills</h1>
         <p className="mt-1 text-sm text-muted-foreground">
           {type === 'words'
-            ? 'Type the romaji. See the meaning.'
+            ? effectiveDirection === 'guess'
+              ? 'Tap the word for the meaning.'
+              : 'Type the romaji. See the meaning.'
             : effectiveDirection === 'guess'
               ? 'Tap the kana for the romaji.'
               : 'Type the romaji. 20 per round.'}
@@ -64,27 +66,25 @@ export function Home({ onStart }: Props) {
         </div>
       </section>
 
-      {type !== 'words' && (
-        <section className="mb-8">
-          <h2 className="mb-3 text-xs font-medium uppercase tracking-wider text-muted-foreground">
-            Direction
-          </h2>
-          <div className="grid grid-cols-2 gap-3">
-            <DirectionButton
-              active={direction === 'read'}
-              label="Type romaji"
-              hint="Kana → romaji"
-              onClick={() => setDirection('read')}
-            />
-            <DirectionButton
-              active={direction === 'guess'}
-              label="Tap kana"
-              hint="Romaji → kana"
-              onClick={() => setDirection('guess')}
-            />
-          </div>
-        </section>
-      )}
+      <section className="mb-8">
+        <h2 className="mb-3 text-xs font-medium uppercase tracking-wider text-muted-foreground">
+          Direction
+        </h2>
+        <div className="grid grid-cols-2 gap-3">
+          <DirectionButton
+            active={direction === 'read'}
+            label={type === 'words' ? 'Type romaji' : 'Type romaji'}
+            hint={type === 'words' ? 'Word → romaji' : 'Kana → romaji'}
+            onClick={() => setDirection('read')}
+          />
+          <DirectionButton
+            active={direction === 'guess'}
+            label={type === 'words' ? 'Tap word' : 'Tap kana'}
+            hint={type === 'words' ? 'Meaning → word' : 'Romaji → kana'}
+            onClick={() => setDirection('guess')}
+          />
+        </div>
+      </section>
 
       <section className="mb-8">
         <h2 className="mb-3 text-xs font-medium uppercase tracking-wider text-muted-foreground">
