@@ -25,6 +25,8 @@ type Action =
   | { type: 'TYPE'; value: string }
   | { type: 'SUBMIT' }
   | { type: 'PICK'; kana: string }
+  | { type: 'TAP_KANA'; kana: string }
+  | { type: 'BACKSPACE' }
   | { type: 'RESET'; deck: KanaEntry[] }
 
 function advance(state: DrillState, creditCorrect: boolean): DrillState {
@@ -89,6 +91,41 @@ function reducer(state: DrillState, action: Action): DrillState {
         mistakes: [...state.mistakes, current],
       }
     }
+    case 'TAP_KANA': {
+      const current = state.deck[state.index]
+      if (!current) return state
+      if (state.revealed) return state
+      const target = current.kana
+      const targetLength = Array.from(target).length
+      const currentLength = Array.from(state.input).length
+      if (currentLength >= targetLength) return state
+      const nextInput = state.input + action.kana
+      const nextLength = Array.from(nextInput).length
+      if (nextLength < targetLength) {
+        return { ...state, input: nextInput }
+      }
+      // Length now matches the target — judge the attempt.
+      if (nextInput === target) {
+        if (current.translation) {
+          return { ...state, input: nextInput, revealed: true }
+        }
+        return advance(state, !state.retry)
+      }
+      // Wrong assembly — record mistake once, clear input, enter retry mode.
+      if (state.retry) return { ...state, input: '' }
+      return {
+        ...state,
+        input: '',
+        retry: true,
+        mistakes: [...state.mistakes, current],
+      }
+    }
+    case 'BACKSPACE': {
+      if (state.revealed) return state
+      const chars = Array.from(state.input)
+      chars.pop()
+      return { ...state, input: chars.join('') }
+    }
     case 'RESET':
       return initial(action.deck)
   }
@@ -129,6 +166,8 @@ export function useDrillSession(type: KanaType, level: Level, direction: Directi
     onType: (value: string) => dispatch({ type: 'TYPE', value }),
     onSubmit: () => dispatch({ type: 'SUBMIT' }),
     onPick: (kana: string) => dispatch({ type: 'PICK', kana }),
+    onTapKana: (kana: string) => dispatch({ type: 'TAP_KANA', kana }),
+    onBackspace: () => dispatch({ type: 'BACKSPACE' }),
     restart: () => {
       const { type, level } = settingsRef.current
       dispatch({ type: 'RESET', deck: buildDeck(pickSet(type, level)) })
