@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef } from 'react'
 import type { Direction, KanaType, Level, KanaEntry } from '@/lib/kana'
+import { pickSet } from '@/lib/kana'
 import { useDrillSession } from '@/hooks/useDrillSession'
 import { Input } from '@/components/ui/input'
 import { Progress } from '@/components/ui/progress'
@@ -20,19 +21,29 @@ type Props = {
 }
 
 const GUESS_OPTION_COUNT = 8
+const WORD_KEY_COUNT = 12
 
 function buildOptions(set: KanaEntry[], current: KanaEntry, seed: number): KanaEntry[] {
   if (set.length <= GUESS_OPTION_COUNT) return shuffle(set, seed)
   const pool = set.filter((e) => e.kana !== current.kana)
   const picks: KanaEntry[] = []
-  // Deterministic pseudo-shuffle based on seed + index so the layout is stable
-  // across re-renders but rotates each prompt.
   const shuffled = shuffle(pool, seed)
   for (let i = 0; i < GUESS_OPTION_COUNT - 1 && i < shuffled.length; i++) {
     picks.push(shuffled[i])
   }
   picks.push(current)
   return shuffle(picks, seed ^ 0x9e3779b9)
+}
+
+function buildKanaKeys(target: string, pool: string[], seed: number): string[] {
+  const need = Array.from(new Set(Array.from(target)))
+  const distractorPool = pool.filter((c) => !need.includes(c))
+  const shuffledDistractors = shuffle(distractorPool, seed)
+  const keys: string[] = [...need]
+  for (let i = 0; keys.length < WORD_KEY_COUNT && i < shuffledDistractors.length; i++) {
+    keys.push(shuffledDistractors[i])
+  }
+  return shuffle(keys, seed ^ 0x9e3779b9)
 }
 
 function shuffle<T>(arr: T[], seed: number): T[] {
@@ -47,7 +58,7 @@ function shuffle<T>(arr: T[], seed: number): T[] {
 }
 
 export function Drill({ type, level, direction, onDone, onQuit }: Props) {
-  const { state, current, set, done, total, onType, onSubmit, onPick } =
+  const { state, current, set, done, total, onType, onSubmit, onPick, onTapKana, onBackspace } =
     useDrillSession(type, level, direction)
   const inputRef = useRef<HTMLInputElement>(null)
   const doneRef = useRef(false)
@@ -56,10 +67,13 @@ export function Drill({ type, level, direction, onDone, onQuit }: Props) {
     onDoneRef.current = onDone
   }, [onDone])
 
+  const isWord = type === 'words'
+  const isGuess = direction === 'guess'
+
   useEffect(() => {
-    if (direction !== 'read') return
+    if (isGuess) return
     inputRef.current?.focus()
-  }, [state.index, direction])
+  }, [state.index, isGuess])
 
   useEffect(() => {
     if (!done || state.finishedAt === null || doneRef.current) return
@@ -73,12 +87,24 @@ export function Drill({ type, level, direction, onDone, onQuit }: Props) {
   }, [done, state.finishedAt, state.correct, state.mistakes, state.startedAt, total])
 
   const progress = done ? 100 : (state.index / total) * 100
-  const isWord = type === 'words'
-  const isGuess = direction === 'guess'
+
+  const kanaCharPool = useMemo(() => {
+    if (!(isGuess && isWord)) return []
+    const chars = new Set<string>()
+    for (const entry of pickSet('hiragana', 3)) {
+      for (const ch of Array.from(entry.kana)) chars.add(ch)
+    }
+    return [...chars]
+  }, [isGuess, isWord])
+
+  const wordKeys = useMemo(() => {
+    if (!(isGuess && isWord) || !current) return []
+    return buildKanaKeys(current.kana, kanaCharPool, state.index + 1)
+  }, [isGuess, isWord, current, kanaCharPool, state.index])
 
   const options = useMemo(
-    () => (isGuess && current ? buildOptions(set, current, state.index + 1) : []),
-    [isGuess, current, set, state.index]
+    () => (isGuess && !isWord && current ? buildOptions(set, current, state.index + 1) : []),
+    [isGuess, isWord, current, set, state.index]
   )
 
   const promptSizeClass =
@@ -120,16 +146,34 @@ export function Drill({ type, level, direction, onDone, onQuit }: Props) {
                   : current.romaji[0]
                 : current.kana}
             </div>
+            {isGuess && isWord && !state.revealed && (
+              <div
+                data-retry={state.retry}
+                className="mt-6 min-h-[3rem] rounded-2xl border border-border px-5 py-2 text-center text-3xl font-medium tracking-wide data-[retry=true]:border-destructive"
+                lang="ja"
+              >
+                {state.input || (
+                  <span className="text-muted-foreground">·</span>
+                )}
+              </div>
+            )}
             {state.revealed && current.translation && (
               <div className="mt-6 flex flex-col items-center gap-1 text-center">
-                <span className="font-mono text-lg text-foreground">
+                {isGuess && isWord && (
+                  <span className="text-3xl font-medium" lang="ja">
+                    {current.kana}
+                  </span>
+                )}
+                <span className="font-mono text-base text-muted-foreground">
                   {current.romaji[0]}
                 </span>
-                <span className="text-xl font-medium text-foreground">
-                  {current.translation}
-                </span>
+                {!(isGuess && isWord) && (
+                  <span className="text-xl font-medium text-foreground">
+                    {current.translation}
+                  </span>
+                )}
                 <span className="mt-2 text-xs uppercase tracking-wider text-muted-foreground">
-                  Enter to continue
+                  {isGuess && isWord ? 'Tap continue' : 'Enter to continue'}
                 </span>
               </div>
             )}
@@ -163,13 +207,55 @@ export function Drill({ type, level, direction, onDone, onQuit }: Props) {
         )}
       </section>
 
-      {isGuess ? (
+      {isGuess && isWord ? (
         <div className="mt-6">
-          <div
-            className={
-              isWord ? 'grid grid-cols-2 gap-2' : 'grid grid-cols-4 gap-2'
-            }
-          >
+          {state.revealed ? (
+            <button
+              type="button"
+              onClick={() => onSubmit()}
+              className="flex h-14 w-full items-center justify-center rounded-2xl bg-primary text-base font-semibold text-primary-foreground transition-colors active:bg-primary/90"
+            >
+              Continue →
+            </button>
+          ) : (
+            <div className="grid grid-cols-4 gap-2">
+              {wordKeys.map((ch, idx) => (
+                <button
+                  key={`${ch}-${idx}`}
+                  type="button"
+                  onClick={() => onTapKana(ch)}
+                  className="flex h-14 items-center justify-center rounded-2xl border border-border bg-background text-2xl font-medium transition-colors active:bg-muted"
+                  lang="ja"
+                >
+                  {ch}
+                </button>
+              ))}
+              <button
+                type="button"
+                onClick={() => onBackspace()}
+                disabled={state.input.length === 0}
+                className="col-span-4 flex h-12 items-center justify-center rounded-2xl border border-border bg-muted/40 text-sm font-medium text-muted-foreground transition-colors active:bg-muted disabled:opacity-40"
+              >
+                ⌫ Backspace
+              </button>
+            </div>
+          )}
+          <div className="mt-4 flex items-center justify-between text-xs text-muted-foreground">
+            <span>{state.revealed ? '' : 'Spell the word'}</span>
+            <button
+              type="button"
+              onClick={() => {
+                if (confirm('Quit this round?')) onQuit()
+              }}
+              className="underline-offset-4 hover:underline"
+            >
+              Quit
+            </button>
+          </div>
+        </div>
+      ) : isGuess ? (
+        <div className="mt-6">
+          <div className="grid grid-cols-4 gap-2">
             {options.map((opt) => {
               const isAnswer = current && opt.kana === current.kana
               const showCorrect = state.retry && isAnswer
@@ -179,9 +265,7 @@ export function Drill({ type, level, direction, onDone, onQuit }: Props) {
                   type="button"
                   onClick={() => onPick(opt.kana)}
                   data-correct={showCorrect}
-                  className={`flex items-center justify-center rounded-2xl border border-border bg-background font-medium transition-colors active:bg-muted data-[correct=true]:border-primary data-[correct=true]:bg-primary/20 ${
-                    isWord ? 'h-14 text-xl' : 'h-16 text-3xl'
-                  }`}
+                  className="flex h-16 items-center justify-center rounded-2xl border border-border bg-background text-3xl font-medium transition-colors active:bg-muted data-[correct=true]:border-primary data-[correct=true]:bg-primary/20"
                   lang="ja"
                 >
                   {opt.kana}
@@ -190,7 +274,7 @@ export function Drill({ type, level, direction, onDone, onQuit }: Props) {
             })}
           </div>
           <div className="mt-4 flex items-center justify-between text-xs text-muted-foreground">
-            <span>{isWord ? 'Tap the right word' : 'Tap the right kana'}</span>
+            <span>Tap the right kana</span>
             <button
               type="button"
               onClick={() => {
