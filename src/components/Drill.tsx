@@ -81,11 +81,14 @@ export function Drill({ type, level, direction, onDone, onQuit }: Props) {
     [isGuess, current, set, state.index]
   )
 
-  const promptSizeClass = isGuess
-    ? 'font-mono text-[min(5rem,16dvh)] leading-[1.2] sm:text-[min(7rem,20dvh)]'
-    : isWord
-      ? 'text-[min(4rem,14dvh)] leading-[1.2] sm:text-[min(6rem,18dvh)]'
-      : 'text-[min(9rem,26dvh)] leading-[1.1] sm:text-[min(12rem,32dvh)]'
+  const promptSizeClass =
+    isGuess && isWord
+      ? 'text-[min(2rem,7dvh)] leading-[1.25] text-center sm:text-[min(2.5rem,9dvh)]'
+      : isGuess
+        ? 'font-mono text-[min(5rem,16dvh)] leading-[1.2] sm:text-[min(7rem,20dvh)]'
+        : isWord
+          ? 'text-[min(4rem,14dvh)] leading-[1.2] sm:text-[min(6rem,18dvh)]'
+          : 'text-[min(9rem,26dvh)] leading-[1.1] sm:text-[min(12rem,32dvh)]'
 
   return (
     <div
@@ -111,7 +114,11 @@ export function Drill({ type, level, direction, onDone, onQuit }: Props) {
               className={`${promptSizeClass} font-medium transition-colors data-[retry=true]:text-destructive`}
               lang={isGuess ? undefined : 'ja'}
             >
-              {isGuess ? current.romaji[0] : current.kana}
+              {isGuess
+                ? isWord
+                  ? current.translation
+                  : current.romaji[0]
+                : current.kana}
             </div>
             {state.revealed && current.translation && (
               <div className="mt-6 flex flex-col items-center gap-1 text-center">
@@ -145,6 +152,11 @@ export function Drill({ type, level, direction, onDone, onQuit }: Props) {
                 <span className="text-2xl text-foreground" lang="ja">
                   {current.kana}
                 </span>
+                {isWord && (
+                  <span className="ml-2 font-mono text-sm text-muted-foreground">
+                    ({current.romaji[0]})
+                  </span>
+                )}
               </p>
             )}
           </>
@@ -153,7 +165,11 @@ export function Drill({ type, level, direction, onDone, onQuit }: Props) {
 
       {isGuess ? (
         <div className="mt-6">
-          <div className="grid grid-cols-4 gap-2">
+          <div
+            className={
+              isWord ? 'grid grid-cols-2 gap-2' : 'grid grid-cols-4 gap-2'
+            }
+          >
             {options.map((opt) => {
               const isAnswer = current && opt.kana === current.kana
               const showCorrect = state.retry && isAnswer
@@ -163,7 +179,9 @@ export function Drill({ type, level, direction, onDone, onQuit }: Props) {
                   type="button"
                   onClick={() => onPick(opt.kana)}
                   data-correct={showCorrect}
-                  className="flex h-16 items-center justify-center rounded-2xl border border-border bg-background text-3xl font-medium transition-colors active:bg-muted data-[correct=true]:border-primary data-[correct=true]:bg-primary/20"
+                  className={`flex items-center justify-center rounded-2xl border border-border bg-background font-medium transition-colors active:bg-muted data-[correct=true]:border-primary data-[correct=true]:bg-primary/20 ${
+                    isWord ? 'h-14 text-xl' : 'h-16 text-3xl'
+                  }`}
                   lang="ja"
                 >
                   {opt.kana}
@@ -172,7 +190,7 @@ export function Drill({ type, level, direction, onDone, onQuit }: Props) {
             })}
           </div>
           <div className="mt-4 flex items-center justify-between text-xs text-muted-foreground">
-            <span>Tap the right kana</span>
+            <span>{isWord ? 'Tap the right word' : 'Tap the right kana'}</span>
             <button
               type="button"
               onClick={() => {
