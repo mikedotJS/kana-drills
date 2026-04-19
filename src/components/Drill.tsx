@@ -45,7 +45,10 @@ export function Drill({ type, level, onDone, onQuit }: Props) {
   const progress = done ? 100 : (state.index / total) * 100
 
   return (
-    <div className="flex h-dvh flex-col overflow-hidden px-6 pt-[max(1rem,env(safe-area-inset-top))] pb-[max(1rem,env(safe-area-inset-bottom))]">
+    <div
+      className="flex flex-col overflow-hidden px-6 pt-[max(1rem,env(safe-area-inset-top))] pb-[max(1rem,env(safe-area-inset-bottom))]"
+      style={{ height: 'var(--app-height, 100dvh)' }}
+    >
       <header className="mb-6 flex items-center gap-3">
         <span className="font-mono text-xs tabular-nums text-muted-foreground">
           {Math.min(state.index + 1, total)}/{total}

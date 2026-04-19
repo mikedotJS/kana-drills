@@ -1,4 +1,4 @@
-import { useCallback, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import type { KanaType, Level } from '@/lib/kana'
 import { Home } from '@/components/Home'
 import { Drill, type DrillResult } from '@/components/Drill'
@@ -11,6 +11,21 @@ type View =
 
 function App() {
   const [view, setView] = useState<View>({ name: 'home' })
+
+  useEffect(() => {
+    const vv = window.visualViewport
+    if (!vv) return
+    const update = () => {
+      document.documentElement.style.setProperty('--app-height', `${vv.height}px`)
+    }
+    update()
+    vv.addEventListener('resize', update)
+    vv.addEventListener('scroll', update)
+    return () => {
+      vv.removeEventListener('resize', update)
+      vv.removeEventListener('scroll', update)
+    }
+  }, [])
 
   const start = useCallback((type: KanaType, level: Level) => {
     setView({ name: 'drill', type, level, nonce: Date.now() })

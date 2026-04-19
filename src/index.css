@@ -121,10 +121,21 @@
   * {
     @apply border-border outline-ring/50;
     }
+  html, body {
+    height: 100%;
+    overflow: hidden;
+    overscroll-behavior: none;
+    }
   body {
     @apply bg-background text-foreground;
+    position: fixed;
+    inset: 0;
+    width: 100%;
     }
   html {
     @apply font-sans;
+    }
+  #root {
+    height: 100%;
     }
 }
