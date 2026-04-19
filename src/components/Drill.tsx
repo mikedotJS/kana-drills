@@ -1,5 +1,5 @@
-import { useEffect, useRef } from 'react'
-import type { KanaType, Level, KanaEntry } from '@/lib/kana'
+import { useEffect, useMemo, useRef } from 'react'
+import type { Direction, KanaType, Level, KanaEntry } from '@/lib/kana'
 import { useDrillSession } from '@/hooks/useDrillSession'
 import { Input } from '@/components/ui/input'
 import { Progress } from '@/components/ui/progress'
@@ -14,12 +14,41 @@ export type DrillResult = {
 type Props = {
   type: KanaType
   level: Level
+  direction: Direction
   onDone: (result: DrillResult) => void
   onQuit: () => void
 }
 
-export function Drill({ type, level, onDone, onQuit }: Props) {
-  const { state, current, done, total, onType, onSubmit } = useDrillSession(type, level)
+const GUESS_OPTION_COUNT = 8
+
+function buildOptions(set: KanaEntry[], current: KanaEntry, seed: number): KanaEntry[] {
+  if (set.length <= GUESS_OPTION_COUNT) return shuffle(set, seed)
+  const pool = set.filter((e) => e.kana !== current.kana)
+  const picks: KanaEntry[] = []
+  // Deterministic pseudo-shuffle based on seed + index so the layout is stable
+  // across re-renders but rotates each prompt.
+  const shuffled = shuffle(pool, seed)
+  for (let i = 0; i < GUESS_OPTION_COUNT - 1 && i < shuffled.length; i++) {
+    picks.push(shuffled[i])
+  }
+  picks.push(current)
+  return shuffle(picks, seed ^ 0x9e3779b9)
+}
+
+function shuffle<T>(arr: T[], seed: number): T[] {
+  const out = arr.slice()
+  let s = (seed || 1) >>> 0
+  for (let i = out.length - 1; i > 0; i--) {
+    s = (s * 1664525 + 1013904223) >>> 0
+    const j = s % (i + 1)
+    ;[out[i], out[j]] = [out[j], out[i]]
+  }
+  return out
+}
+
+export function Drill({ type, level, direction, onDone, onQuit }: Props) {
+  const { state, current, set, done, total, onType, onSubmit, onPick } =
+    useDrillSession(type, level, direction)
   const inputRef = useRef<HTMLInputElement>(null)
   const doneRef = useRef(false)
   const onDoneRef = useRef(onDone)
@@ -28,8 +57,9 @@ export function Drill({ type, level, onDone, onQuit }: Props) {
   }, [onDone])
 
   useEffect(() => {
+    if (direction !== 'read') return
     inputRef.current?.focus()
-  }, [state.index])
+  }, [state.index, direction])
 
   useEffect(() => {
     if (!done || state.finishedAt === null || doneRef.current) return
@@ -44,9 +74,18 @@ export function Drill({ type, level, onDone, onQuit }: Props) {
 
   const progress = done ? 100 : (state.index / total) * 100
   const isWord = type === 'words'
-  const kanaSizeClass = isWord
-    ? 'text-[min(4rem,14dvh)] leading-[1.2] sm:text-[min(6rem,18dvh)]'
-    : 'text-[min(9rem,26dvh)] leading-[1.1] sm:text-[min(12rem,32dvh)]'
+  const isGuess = direction === 'guess'
+
+  const options = useMemo(
+    () => (isGuess && current ? buildOptions(set, current, state.index + 1) : []),
+    [isGuess, current, set, state.index]
+  )
+
+  const promptSizeClass = isGuess
+    ? 'font-mono text-[min(5rem,16dvh)] leading-[1.2] sm:text-[min(7rem,20dvh)]'
+    : isWord
+      ? 'text-[min(4rem,14dvh)] leading-[1.2] sm:text-[min(6rem,18dvh)]'
+      : 'text-[min(9rem,26dvh)] leading-[1.1] sm:text-[min(12rem,32dvh)]'
 
   return (
     <div
@@ -69,10 +108,10 @@ export function Drill({ type, level, onDone, onQuit }: Props) {
             <div
               key={state.index}
               data-retry={state.retry}
-              className={`${kanaSizeClass} font-medium transition-colors data-[retry=true]:text-destructive`}
-              lang="ja"
+              className={`${promptSizeClass} font-medium transition-colors data-[retry=true]:text-destructive`}
+              lang={isGuess ? undefined : 'ja'}
             >
-              {current.kana}
+              {isGuess ? current.romaji[0] : current.kana}
             </div>
             {state.revealed && current.translation && (
               <div className="mt-6 flex flex-col items-center gap-1 text-center">
@@ -87,7 +126,7 @@ export function Drill({ type, level, onDone, onQuit }: Props) {
                 </span>
               </div>
             )}
-            {!state.revealed && state.retry && (
+            {!state.revealed && state.retry && !isGuess && (
               <p className="mt-4 text-center text-sm text-muted-foreground">
                 Answer:{' '}
                 <span className="font-mono text-base text-foreground">
@@ -100,47 +139,90 @@ export function Drill({ type, level, onDone, onQuit }: Props) {
                 )}
               </p>
             )}
+            {state.retry && isGuess && (
+              <p className="mt-4 text-center text-sm text-muted-foreground">
+                Answer:{' '}
+                <span className="text-2xl text-foreground" lang="ja">
+                  {current.kana}
+                </span>
+              </p>
+            )}
           </>
         )}
       </section>
 
-      <form
-        className="mt-6"
-        onSubmit={(e) => {
-          e.preventDefault()
-          onSubmit()
-        }}
-      >
-        <Input
-          ref={inputRef}
-          value={state.input}
-          onChange={(e) => onType(e.target.value)}
-          placeholder="romaji"
-          inputMode="text"
-          autoCapitalize="none"
-          autoCorrect="off"
-          spellCheck={false}
-          autoComplete="off"
-          autoFocus
-          readOnly={state.revealed}
-          aria-label="Romaji input"
-          data-retry={state.retry}
-          data-revealed={state.revealed}
-          className="h-14 rounded-2xl text-center !text-2xl font-mono data-[retry=true]:border-destructive data-[retry=true]:ring-3 data-[retry=true]:ring-destructive/30 data-[revealed=true]:border-primary data-[revealed=true]:ring-3 data-[revealed=true]:ring-primary/30"
-        />
-        <div className="mt-4 flex items-center justify-between text-xs text-muted-foreground">
-          <span>Enter to submit</span>
-          <button
-            type="button"
-            onClick={() => {
-              if (confirm('Quit this round?')) onQuit()
-            }}
-            className="underline-offset-4 hover:underline"
-          >
-            Quit
-          </button>
+      {isGuess ? (
+        <div className="mt-6">
+          <div className="grid grid-cols-4 gap-2">
+            {options.map((opt) => {
+              const isAnswer = current && opt.kana === current.kana
+              const showCorrect = state.retry && isAnswer
+              return (
+                <button
+                  key={opt.kana}
+                  type="button"
+                  onClick={() => onPick(opt.kana)}
+                  data-correct={showCorrect}
+                  className="flex h-16 items-center justify-center rounded-2xl border border-border bg-background text-3xl font-medium transition-colors active:bg-muted data-[correct=true]:border-primary data-[correct=true]:bg-primary/20"
+                  lang="ja"
+                >
+                  {opt.kana}
+                </button>
+              )
+            })}
+          </div>
+          <div className="mt-4 flex items-center justify-between text-xs text-muted-foreground">
+            <span>Tap the right kana</span>
+            <button
+              type="button"
+              onClick={() => {
+                if (confirm('Quit this round?')) onQuit()
+              }}
+              className="underline-offset-4 hover:underline"
+            >
+              Quit
+            </button>
+          </div>
         </div>
-      </form>
+      ) : (
+        <form
+          className="mt-6"
+          onSubmit={(e) => {
+            e.preventDefault()
+            onSubmit()
+          }}
+        >
+          <Input
+            ref={inputRef}
+            value={state.input}
+            onChange={(e) => onType(e.target.value)}
+            placeholder="romaji"
+            inputMode="text"
+            autoCapitalize="none"
+            autoCorrect="off"
+            spellCheck={false}
+            autoComplete="off"
+            autoFocus
+            readOnly={state.revealed}
+            aria-label="Romaji input"
+            data-retry={state.retry}
+            data-revealed={state.revealed}
+            className="h-14 rounded-2xl text-center !text-2xl font-mono data-[retry=true]:border-destructive data-[retry=true]:ring-3 data-[retry=true]:ring-destructive/30 data-[revealed=true]:border-primary data-[revealed=true]:ring-3 data-[revealed=true]:ring-primary/30"
+          />
+          <div className="mt-4 flex items-center justify-between text-xs text-muted-foreground">
+            <span>Enter to submit</span>
+            <button
+              type="button"
+              onClick={() => {
+                if (confirm('Quit this round?')) onQuit()
+              }}
+              className="underline-offset-4 hover:underline"
+            >
+              Quit
+            </button>
+          </div>
+        </form>
+      )}
     </div>
   )
 }

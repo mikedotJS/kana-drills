@@ -1,11 +1,11 @@
 import { useState } from 'react'
-import type { KanaType, Level } from '@/lib/kana'
+import type { Direction, KanaType, Level } from '@/lib/kana'
 import { levelLabel, pickSet } from '@/lib/kana'
 import { loadSettings, saveSettings } from '@/lib/storage'
 import { Button } from '@/components/ui/button'
 
 type Props = {
-  onStart: (type: KanaType, level: Level) => void
+  onStart: (type: KanaType, level: Level, direction: Direction) => void
 }
 
 const MODES: { type: KanaType; label: string; sample: string }[] = [
@@ -17,7 +17,9 @@ const MODES: { type: KanaType; label: string; sample: string }[] = [
 export function Home({ onStart }: Props) {
   const [type, setType] = useState<KanaType>(() => loadSettings().type)
   const [level, setLevel] = useState<Level>(() => loadSettings().level)
+  const [direction, setDirection] = useState<Direction>(() => loadSettings().direction)
 
+  const effectiveDirection: Direction = type === 'words' ? 'read' : direction
   const setCount = pickSet(type, level).length
   const sampleKana = pickSet(type, level)
     .slice(0, 10)
@@ -25,8 +27,8 @@ export function Home({ onStart }: Props) {
     .join(type === 'words' ? '  ' : ' ')
 
   const start = () => {
-    saveSettings({ type, level })
-    onStart(type, level)
+    saveSettings({ type, level, direction: effectiveDirection })
+    onStart(type, level, effectiveDirection)
   }
 
   return (
@@ -37,7 +39,11 @@ export function Home({ onStart }: Props) {
       <header className="mb-10 text-center">
         <h1 className="font-heading text-3xl font-medium tracking-tight">Kana Drills</h1>
         <p className="mt-1 text-sm text-muted-foreground">
-          {type === 'words' ? 'Type the romaji. See the meaning.' : 'Type the romaji. 20 per round.'}
+          {type === 'words'
+            ? 'Type the romaji. See the meaning.'
+            : effectiveDirection === 'guess'
+              ? 'Tap the kana for the romaji.'
+              : 'Type the romaji. 20 per round.'}
         </p>
       </header>
 
@@ -57,6 +63,28 @@ export function Home({ onStart }: Props) {
           ))}
         </div>
       </section>
+
+      {type !== 'words' && (
+        <section className="mb-8">
+          <h2 className="mb-3 text-xs font-medium uppercase tracking-wider text-muted-foreground">
+            Direction
+          </h2>
+          <div className="grid grid-cols-2 gap-3">
+            <DirectionButton
+              active={direction === 'read'}
+              label="Type romaji"
+              hint="Kana → romaji"
+              onClick={() => setDirection('read')}
+            />
+            <DirectionButton
+              active={direction === 'guess'}
+              label="Tap kana"
+              hint="Romaji → kana"
+              onClick={() => setDirection('guess')}
+            />
+          </div>
+        </section>
+      )}
 
       <section className="mb-8">
         <h2 className="mb-3 text-xs font-medium uppercase tracking-wider text-muted-foreground">
@@ -118,6 +146,30 @@ function TypeButton({
       <span className="text-base text-muted-foreground" lang="ja">
         {sample}
       </span>
+    </button>
+  )
+}
+
+function DirectionButton({
+  active,
+  label,
+  hint,
+  onClick,
+}: {
+  active: boolean
+  label: string
+  hint: string
+  onClick: () => void
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      data-active={active}
+      className="flex flex-col items-start gap-0.5 rounded-xl border border-border bg-background px-4 py-3 text-left transition-colors data-[active=true]:border-primary data-[active=true]:bg-primary/10"
+    >
+      <span className="text-sm font-medium">{label}</span>
+      <span className="text-xs text-muted-foreground">{hint}</span>
     </button>
   )
 }

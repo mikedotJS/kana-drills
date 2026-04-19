@@ -3,6 +3,7 @@ import { pickWordSet, WORD_LEVEL_LABEL } from './words'
 export type KanaEntry = { kana: string; romaji: string[]; translation?: string }
 export type KanaType = 'hiragana' | 'katakana' | 'words'
 export type Level = 1 | 2 | 3
+export type Direction = 'read' | 'guess'
 
 const HIRAGANA_BASE: KanaEntry[] = [
   { kana: 'あ', romaji: ['a'] },
