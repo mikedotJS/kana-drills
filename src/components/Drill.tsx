@@ -45,7 +45,7 @@ export function Drill({ type, level, onDone, onQuit }: Props) {
   const progress = done ? 100 : (state.index / total) * 100
 
   return (
-    <div className="flex min-h-dvh flex-col px-6 pt-[max(1rem,env(safe-area-inset-top))] pb-[max(1rem,env(safe-area-inset-bottom))]">
+    <div className="flex h-dvh flex-col overflow-hidden px-6 pt-[max(1rem,env(safe-area-inset-top))] pb-[max(1rem,env(safe-area-inset-bottom))]">
       <header className="mb-6 flex items-center gap-3">
         <span className="font-mono text-xs tabular-nums text-muted-foreground">
           {Math.min(state.index + 1, total)}/{total}
@@ -56,13 +56,13 @@ export function Drill({ type, level, onDone, onQuit }: Props) {
         </span>
       </header>
 
-      <section className="flex flex-1 flex-col items-center justify-center">
+      <section className="flex min-h-0 flex-1 flex-col items-center justify-center">
         {current && (
           <>
             <div
               key={state.index}
               data-retry={state.retry}
-              className="text-[9rem] leading-none font-medium transition-colors data-[retry=true]:text-destructive sm:text-[12rem]"
+              className="text-[min(9rem,26dvh)] leading-[1.1] font-medium transition-colors data-[retry=true]:text-destructive sm:text-[min(12rem,32dvh)]"
               lang="ja"
             >
               {current.kana}
