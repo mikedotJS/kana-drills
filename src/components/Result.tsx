@@ -26,7 +26,10 @@ export function Result({ result, onPlayAgain, onHome }: Props) {
   const missed = dedupe(mistakes)
 
   return (
-    <div className="flex min-h-dvh flex-col px-6 pt-[max(1.5rem,env(safe-area-inset-top))] pb-[max(1.5rem,env(safe-area-inset-bottom))]">
+    <div
+      className="flex flex-col overflow-y-auto px-6 pt-[max(1.5rem,env(safe-area-inset-top))] pb-[max(1.5rem,env(safe-area-inset-bottom))]"
+      style={{ height: 'var(--app-height, 100dvh)' }}
+    >
       <header className="mb-8 text-center">
         <p className="text-sm uppercase tracking-wider text-muted-foreground">Round complete</p>
         <h1 className="mt-2 font-heading text-5xl font-medium tabular-nums">

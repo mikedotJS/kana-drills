@@ -24,7 +24,10 @@ export function Home({ onStart }: Props) {
   }
 
   return (
-    <div className="flex min-h-dvh flex-col px-6 pt-[max(1.5rem,env(safe-area-inset-top))] pb-[max(1.5rem,env(safe-area-inset-bottom))]">
+    <div
+      className="flex flex-col overflow-y-auto px-6 pt-[max(1.5rem,env(safe-area-inset-top))] pb-[max(1.5rem,env(safe-area-inset-bottom))]"
+      style={{ height: 'var(--app-height, 100dvh)' }}
+    >
       <header className="mb-10 text-center">
         <h1 className="font-heading text-3xl font-medium tracking-tight">Kana Drills</h1>
         <p className="mt-1 text-sm text-muted-foreground">Type the romaji. 20 per round.</p>
