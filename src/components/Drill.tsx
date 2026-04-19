@@ -119,7 +119,7 @@ export function Drill({ type, level, direction, onDone, onQuit }: Props) {
 
   const promptSizeClass =
     isGuess && isWord
-      ? 'text-[min(2rem,7dvh)] leading-[1.25] text-center sm:text-[min(2.5rem,9dvh)]'
+      ? 'font-mono text-[min(3rem,10dvh)] leading-[1.2] text-center sm:text-[min(4rem,13dvh)]'
       : isGuess
         ? 'font-mono text-[min(5rem,16dvh)] leading-[1.2] sm:text-[min(7rem,20dvh)]'
         : isWord
@@ -151,11 +151,7 @@ export function Drill({ type, level, direction, onDone, onQuit }: Props) {
               className={`${promptSizeClass} font-medium transition-colors data-[retry=true]:text-destructive`}
               lang={isGuess ? undefined : 'ja'}
             >
-              {isGuess
-                ? isWord
-                  ? current.translation
-                  : current.romaji[0]
-                : current.kana}
+              {isGuess ? current.romaji[0] : current.kana}
             </div>
             {isGuess && isWord && !state.revealed && (
               <div
@@ -178,11 +174,9 @@ export function Drill({ type, level, direction, onDone, onQuit }: Props) {
                 <span className="font-mono text-base text-muted-foreground">
                   {current.romaji[0]}
                 </span>
-                {!(isGuess && isWord) && (
-                  <span className="text-xl font-medium text-foreground">
-                    {current.translation}
-                  </span>
-                )}
+                <span className="text-xl font-medium text-foreground">
+                  {current.translation}
+                </span>
                 <span className="mt-2 text-xs uppercase tracking-wider text-muted-foreground">
                   {isGuess && isWord ? 'Tap continue' : 'Enter to continue'}
                 </span>

@@ -41,7 +41,7 @@ export function Home({ onStart }: Props) {
         <p className="mt-1 text-sm text-muted-foreground">
           {type === 'words'
             ? effectiveDirection === 'guess'
-              ? 'Tap the word for the meaning.'
+              ? 'Spell the romaji. See the meaning.'
               : 'Type the romaji. See the meaning.'
             : effectiveDirection === 'guess'
               ? 'Tap the kana for the romaji.'
@@ -79,8 +79,8 @@ export function Home({ onStart }: Props) {
           />
           <DirectionButton
             active={direction === 'guess'}
-            label={type === 'words' ? 'Tap word' : 'Tap kana'}
-            hint={type === 'words' ? 'Meaning → word' : 'Romaji → kana'}
+            label={type === 'words' ? 'Spell word' : 'Tap kana'}
+            hint={type === 'words' ? 'Romaji → word' : 'Romaji → kana'}
             onClick={() => setDirection('guess')}
           />
         </div>
