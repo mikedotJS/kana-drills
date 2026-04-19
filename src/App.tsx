@@ -1,13 +1,19 @@
 import { useCallback, useEffect, useState } from 'react'
-import type { KanaType, Level } from '@/lib/kana'
+import type { Direction, KanaType, Level } from '@/lib/kana'
 import { Home } from '@/components/Home'
 import { Drill, type DrillResult } from '@/components/Drill'
 import { Result } from '@/components/Result'
 
 type View =
   | { name: 'home' }
-  | { name: 'drill'; type: KanaType; level: Level; nonce: number }
-  | { name: 'result'; type: KanaType; level: Level; result: DrillResult }
+  | { name: 'drill'; type: KanaType; level: Level; direction: Direction; nonce: number }
+  | {
+      name: 'result'
+      type: KanaType
+      level: Level
+      direction: Direction
+      result: DrillResult
+    }
 
 function App() {
   const [view, setView] = useState<View>({ name: 'home' })
@@ -27,14 +33,20 @@ function App() {
     }
   }, [])
 
-  const start = useCallback((type: KanaType, level: Level) => {
-    setView({ name: 'drill', type, level, nonce: Date.now() })
+  const start = useCallback((type: KanaType, level: Level, direction: Direction) => {
+    setView({ name: 'drill', type, level, direction, nonce: Date.now() })
   }, [])
 
   const finish = useCallback(
     (result: DrillResult) => {
       if (view.name !== 'drill') return
-      setView({ name: 'result', type: view.type, level: view.level, result })
+      setView({
+        name: 'result',
+        type: view.type,
+        level: view.level,
+        direction: view.direction,
+        result,
+      })
     },
     [view]
   )
@@ -50,6 +62,7 @@ function App() {
         key={view.nonce}
         type={view.type}
         level={view.level}
+        direction={view.direction}
         onDone={finish}
         onQuit={goHome}
       />
@@ -58,7 +71,7 @@ function App() {
   return (
     <Result
       result={view.result}
-      onPlayAgain={() => start(view.type, view.level)}
+      onPlayAgain={() => start(view.type, view.level, view.direction)}
       onHome={goHome}
     />
   )
