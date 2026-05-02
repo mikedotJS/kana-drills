@@ -104,6 +104,9 @@ export function Drill({ type, level, direction, onDone, onQuit }: Props) {
     for (const entry of pickSet('hiragana', 3)) {
       for (const ch of Array.from(entry.kana)) chars.add(ch)
     }
+    for (const entry of pickSet('words', 3)) {
+      for (const ch of Array.from(entry.kana)) chars.add(ch)
+    }
     return [...chars]
   }, [isGuess, isWord])
 
